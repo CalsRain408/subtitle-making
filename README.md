@@ -18,6 +18,16 @@ V1 使用 FFmpeg 提取并切分音频，调用 OpenAI `whisper-1` 生成带时�
 
 V1 的完整设计和实施顺序见 [docs/V1_EXECUTION_PLAN.md](docs/V1_EXECUTION_PLAN.md)。
 
+## Web 界面
+
+启动开发服务器后，访问 <http://127.0.0.1:8000/> 即可使用网页上传视频。页面会显示上传与处理状态；任务完成后可直接下载中英双语 SRT 字幕。
+
+```bash
+uvicorn subtitle_maker.api.app:app --reload
+```
+
+网页和 HTTP API 使用同一个 FastAPI 进程，不需要单独启动前端服务。
+
 ## 项目结构
 
 项目采用 `src` layout。可复用代码全部放在 `subtitle_maker` Python 包中；测试、文档和运行数据与源码分离。
@@ -36,6 +46,7 @@ subtitle-making/
 │       ├── subtitles/              # SRT 等字幕格式输出
 │       ├── transcription/          # ASR 服务适配器
 │       ├── translation/            # 翻译服务适配器
+│       ├── web/                    # Web 界面与静态资源
 │       ├── bootstrap.py            # 依赖装配
 │       ├── cli.py                  # 命令行入口
 │       └── config.py               # 环境配置

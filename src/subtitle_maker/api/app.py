@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from subtitle_maker.api.schemas import JobResponse
 from subtitle_maker.bootstrap import build_pipeline
@@ -15,12 +16,19 @@ from subtitle_maker.jobs.store import FileJobStore, JobNotFoundError
 settings = Settings()
 store = FileJobStore(settings.data_dir / "jobs")
 runner = JobRunner(store=store, pipeline_factory=lambda: build_pipeline(settings))
+web_dir = Path(__file__).resolve().parents[1] / "web" / "static"
 
 app = FastAPI(
     title="Subtitle Maker API",
     version="0.1.0",
     description="Generate bilingual English-Chinese SRT subtitles from uploaded videos.",
 )
+app.mount("/static", StaticFiles(directory=web_dir), name="static")
+
+
+@app.get("/", include_in_schema=False)
+def web_app() -> FileResponse:
+    return FileResponse(web_dir / "index.html", media_type="text/html")
 
 
 @app.get("/health")

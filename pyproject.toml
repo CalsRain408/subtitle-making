@@ -31,6 +31,9 @@ subtitle-maker = "subtitle_maker.cli:app"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+"subtitle_maker.web" = ["static/*"]
+
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
@@ -46,4 +49,3 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 python_version = "3.11"
 packages = ["subtitle_maker"]
 strict = true
-

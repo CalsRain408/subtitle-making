@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f2ec">
+    <meta name="description" content="上传英文视频，自动生成带时间轴的中英双语 SRT 字幕。">
+    <title>Subtitle Maker · 中英双语字幕生成器</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="/static/app.js" defer></script>
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="Subtitle Maker 首页">
+          <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span>Subtitle Maker</span>
+        </a>
+        <div class="local-badge">
+          <span class="local-dot" aria-hidden="true"></span>
+          本机任务空间
+        </div>
+      </header>
+
+      <main>
+        <section class="hero" aria-labelledby="hero-title">
+          <div class="hero-copy">
+            <div class="eyebrow"><span>AI POWERED</span><span class="eyebrow-line"></span></div>
+            <h1 id="hero-title">让每一句对白，<br><em>跨过语言边界。</em></h1>
+            <p class="hero-description">
+              上传英文视频，自动完成语音识别、时间轴对齐与中文翻译，生成播放器可直接加载的中英双语字幕。
+            </p>
+            <ul class="feature-list" aria-label="产品特点">
+              <li><span>01</span>保留原声时间轴</li>
+              <li><span>02</span>中英双行对照</li>
+              <li><span>03</span>标准 SRT 输出</li>
+            </ul>
+          </div>
+
+          <div class="workspace-card" id="workspace-card">
+            <div class="card-heading">
+              <div>
+                <p class="card-kicker">NEW PROJECT</p>
+                <h2>创建字幕任务</h2>
+              </div>
+              <span class="step-label" id="step-label">第 1 步 / 共 3 步</span>
+            </div>
+
+            <div id="upload-view">
+              <input id="video-input" class="visually-hidden" type="file" accept="video/*,.mkv,.mov,.mp4,.webm,.avi,.m4v">
+              <label class="drop-zone" id="drop-zone" for="video-input" tabindex="0">
+                <span class="upload-glyph" aria-hidden="true"><span></span></span>
+                <strong>拖拽视频到这里</strong>
+                <span>或点击浏览本地文件</span>
+                <small>支持 MP4、MOV、MKV、WebM 等常见格式</small>
+              </label>
+
+              <div class="file-card" id="file-card" hidden>
+                <div class="file-icon" aria-hidden="true">▶</div>
+                <div class="file-copy">
+                  <strong id="file-name"></strong>
+                  <span id="file-meta"></span>
+                </div>
+                <button class="icon-button" id="remove-file" type="button" aria-label="移除所选视频">×</button>
+              </div>
+
+              <div class="privacy-note">
+                <span class="lock-icon" aria-hidden="true"></span>
+                <span>文件仅用于当前字幕任务，任务数据保存在本机。</span>
+              </div>
+
+              <button class="primary-button" id="start-button" type="button" disabled>
+                <span>开始生成双语字幕</span><span aria-hidden="true">↗</span>
+              </button>
+              <p class="form-error" id="form-error" role="alert" hidden></p>
+            </div>
+
+            <div class="progress-view" id="progress-view" hidden aria-live="polite">
+              <div class="processing-visual" id="processing-visual">
+                <div class="orbit"><span></span><span></span><span></span></div>
+                <div class="success-mark" aria-hidden="true">✓</div>
+              </div>
+              <p class="status-kicker" id="status-kicker">正在上传</p>
+              <h3 id="status-title">正在安全上传视频…</h3>
+              <p class="status-detail" id="status-detail">请保持页面打开，上传完成后会自动开始处理。</p>
+
+              <div class="progress-track" id="progress-track" role="progressbar" aria-label="任务进度" aria-valuemin="0" aria-valuemax="100">
+                <span id="progress-fill"></span>
+              </div>
+              <div class="progress-meta">
+                <span id="progress-label">准备上传</span>
+                <span id="progress-percent">0%</span>
+              </div>
+
+              <ol class="process-steps">
+                <li id="process-upload"><span>1</span><div><strong>上传视频</strong><small>保存到任务空间</small></div></li>
+                <li id="process-generate"><span>2</span><div><strong>识别与翻译</strong><small>提取对白并生成中文</small></div></li>
+                <li id="process-export"><span>3</span><div><strong>生成字幕</strong><small>输出双语 SRT 文件</small></div></li>
+              </ol>
+
+              <a class="primary-button download-button" id="download-button" href="#" hidden>
+                <span>下载双语字幕</span><span aria-hidden="true">↓</span>
+              </a>
+              <button class="secondary-button" id="new-task-button" type="button" hidden>创建新任务</button>
+              <button class="secondary-button" id="retry-button" type="button" hidden>重新选择视频</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="how-it-works" aria-labelledby="flow-title">
+          <div class="section-heading">
+            <p>HOW IT WORKS</p>
+            <h2 id="flow-title">从视频到双语字幕，三步完成</h2>
+          </div>
+          <div class="flow-grid">
+            <article><span>01</span><div class="flow-icon sound-icon" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><h3>提取原声</h3><p>自动分离视频音轨并切分长音频，保留精确的全局时间位置。</p></article>
+            <article><span>02</span><div class="flow-icon language-icon" aria-hidden="true">A <i>译</i></div><h3>识别与翻译</h3><p>识别英文对白，结合相邻语境生成自然、连贯的简体中文翻译。</p></article>
+            <article><span>03</span><div class="flow-icon subtitle-icon" aria-hidden="true"><i></i><i></i></div><h3>下载 SRT</h3><p>英文在上、中文在下，标准 UTF-8 字幕可直接载入主流播放器。</p></article>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <span>Subtitle Maker · 为清晰表达而生</span>
+        <a href="/docs">API 文档 ↗</a>
+      </footer>
+    </div>
+  </body>
+</html>

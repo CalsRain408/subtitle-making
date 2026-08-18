@@ -1,5 +1,6 @@
 .DS_Store
 .env
+.idea
 .venv/
 __pycache__/
 *.py[cod]
@@ -10,4 +11,4 @@ __pycache__/
 dist/
 build/
 var/
-
+AGENTS.md
