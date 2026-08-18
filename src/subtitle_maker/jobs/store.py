@@ -82,3 +82,5 @@ class FileJobStore:
     def output_path(self, job_id: str) -> Path:
         return self.job_dir(job_id) / "subtitles.bilingual.srt"
 
+    def video_output_path(self, job_id: str) -> Path:
+        return self.job_dir(job_id) / "video.bilingual.mp4"

@@ -19,3 +19,12 @@ class Translator(Protocol):
 
 class SubtitleWriter(Protocol):
     def write(self, segments: Sequence[SubtitleSegment], output_path: Path) -> None: ...
+
+
+class VideoRenderer(Protocol):
+    def render(
+        self,
+        video_path: Path,
+        subtitle_path: Path,
+        output_path: Path,
+    ) -> None: ...

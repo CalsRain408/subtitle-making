@@ -75,7 +75,7 @@ h1 em { color: var(--green); font-style: normal; }
 .primary-button { border: 0; color: white; background: var(--green); text-decoration: none; }
 .primary-button:hover:not(:disabled) { background: #174c38; transform: translateY(-1px); }
 .primary-button:disabled { cursor: not-allowed; opacity: .38; }
-.secondary-button { margin-top: 10px; justify-content: center; border: 1px solid #cfd2cb; color: var(--ink); background: transparent; }
+.secondary-button { margin-top: 10px; justify-content: center; border: 1px solid #cfd2cb; color: var(--ink); background: transparent; text-decoration: none; }
 .secondary-button:hover { background: #f0efe9; }
 .form-error { color: var(--error); font-size: 12px; line-height: 1.5; margin: 12px 2px 0; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }

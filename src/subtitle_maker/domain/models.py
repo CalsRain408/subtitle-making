@@ -26,4 +26,4 @@ class SubtitleSegment:
 class PipelineResult:
     output_path: Path
     segment_count: int
-
+    video_output_path: Path | None = None

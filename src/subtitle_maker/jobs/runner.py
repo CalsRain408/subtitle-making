@@ -22,6 +22,7 @@ class JobRunner:
                 video_path=video_path,
                 output_path=self.store.output_path(job_id),
                 work_dir=self.store.job_dir(job_id) / "work",
+                video_output_path=self.store.video_output_path(job_id),
             )
         except Exception as exc:
             failed = self.store.get(job_id).mark_failed(str(exc)[:2000])

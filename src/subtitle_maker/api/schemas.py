@@ -15,6 +15,7 @@ class JobResponse(BaseModel):
     error: str | None = None
     status_url: str
     download_url: str | None = None
+    video_download_url: str | None = None
 
     @classmethod
     def from_record(cls, record: JobRecord) -> "JobResponse":
@@ -33,5 +34,9 @@ class JobResponse(BaseModel):
             error=record.error,
             status_url=f"/v1/jobs/{record.id}",
             download_url=download,
+            video_download_url=(
+                f"/v1/jobs/{record.id}/video"
+                if record.status is JobStatus.SUCCEEDED
+                else None
+            ),
         )
-

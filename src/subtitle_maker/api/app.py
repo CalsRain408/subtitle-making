@@ -21,7 +21,7 @@ web_dir = Path(__file__).resolve().parents[1] / "web" / "static"
 app = FastAPI(
     title="Subtitle Maker API",
     version="0.1.0",
-    description="Generate bilingual English-Chinese SRT subtitles from uploaded videos.",
+    description="Generate bilingual subtitles and render them into uploaded videos.",
 )
 app.mount("/static", StaticFiles(directory=web_dir), name="static")
 
@@ -84,4 +84,22 @@ def download_subtitles(job_id: str) -> FileResponse:
         output,
         media_type="application/x-subrip; charset=utf-8",
         filename=f"{Path(record.original_filename).stem}.bilingual.srt",
+    )
+
+
+@app.get("/v1/jobs/{job_id}/video")
+def download_video(job_id: str) -> FileResponse:
+    try:
+        record = store.get(job_id)
+    except JobNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Job not found") from exc
+    if record.status is not JobStatus.SUCCEEDED:
+        raise HTTPException(status_code=409, detail=f"Job is {record.status.value}")
+    output = store.video_output_path(job_id)
+    if not output.is_file():
+        raise HTTPException(status_code=500, detail="Rendered video output is missing")
+    return FileResponse(
+        output,
+        media_type="video/mp4",
+        filename=f"{Path(record.original_filename).stem}.bilingual.mp4",
     )

@@ -2,7 +2,7 @@
 
 ## 1. 目标
 
-V1 要验证一条完整、可重复的字幕生产链路：用户提供英文视频，系统输出可以直接被常见播放器加载的中英双语 SRT 文件。
+V1 要验证一条完整、可重复的字幕生产链路：用户提供英文视频，系统输出带有中英双语硬字幕的 MP4 成片，并同时保留可以被常见播放器加载的 SRT 文件。
 
 成功标准不是一次性脚本能够跑通，而是形成可维护的 Python 包：命令行和 HTTP 上传入口复用同一业务管线，外部服务可以被替换，关键逻辑可以在不调用网络的情况下测试。
 
@@ -13,10 +13,12 @@ V1 要验证一条完整、可重复的字幕生产链路：用户提供英文�
 - 本地视频文件的命令行入口；
 - 视频上传、任务状态查询和字幕下载接口；
 - FFmpeg 提取音频、单声道降采样及定长切片；
-- OpenAI `whisper-1` 英文转录与 segment 时间戳；
+- Apple Silicon 上使用本地 MLX `whisper-turbo` 生成英文转录与 segment 时间戳；
+- 保留 OpenAI `whisper-1` 作为可配置的转写后端；
 - 文本模型将英文分段翻译为简体中文；
 - 翻译输入输出 ID 校验，防止合并、漏译或错位；
 - 中英双行 SRT 输出；
+- 中文在上、英文在下的底部硬字幕及 MP4 成片输出；
 - 本地任务目录及 JSON 状态持久化；
 - 核心流程和字幕格式的单元测试。
 
@@ -27,8 +29,6 @@ V1 要验证一条完整、可重复的字幕生产链路：用户提供英文�
 - 浏览器中的字幕编辑器；
 - 自动识别人物身份或说话人标签；
 - OCR 识别画面文字；
-- 中文字幕烧录进视频；
-- 本地 Whisper 推理；
 - 生产级对象存储和数据库。
 
 ## 3. 技术决策
@@ -40,13 +40,14 @@ V1 要验证一条完整、可重复的字幕生产链路：用户提供英文�
 | HTTP 框架 | FastAPI | 文件上传、类型校验和 OpenAPI 文档开箱即用 |
 | CLI | Typer | 与类型注解结合，减少入口层样板代码 |
 | 音频处理 | FFmpeg/ffprobe | 编解码支持广，适合视频音轨提取与切片 |
-| 英文 ASR | `whisper-1` | 可返回英文转录和 segment 时间戳 |
+| 英文 ASR | MLX `whisper-turbo` | Apple Silicon 本地推理，不按音频时长产生 API 费用；保留 `whisper-1` 后端 |
 | 中文翻译 | Responses API + 结构化输出 | 用 ID 约束结果，降低字幕错位风险 |
 | 字幕格式 | 自有轻量 SRT writer | 规则简单，便于精确控制双语行顺序 |
+| 视频成片 | ASS + FFmpeg/libass + H.264/AAC | 可控制双语行序、底部位置和描边；英文使用 Roboto 400，中文字体可配置；FFmpeg 构建必须包含 `subtitles` 过滤器 |
 | 任务存储 | 每任务一个目录和 JSON 文件 | V1 零基础设施，调试时结果可直接检查 |
 | 测试 | pytest + 假适配器 | 默认测试不依赖网络、Key 或真实媒体 |
 
-OpenAI 官方文档显示 `whisper-1` 的输入模态是音频，视频不受支持，因此视频必须先提取音轨；转录端点为 `/v1/audio/transcriptions`。参考 [Whisper 模型文档](https://developers.openai.com/api/docs/models/whisper-1)。
+MLX Whisper 与 OpenAI `whisper-1` 都接收音频，因此视频必须先提取音轨。MLX 适配器使用 Apple Silicon 的统一内存和 Metal；API 回退模式使用 `/v1/audio/transcriptions`。参考 [Apple MLX Whisper](https://github.com/ml-explore/mlx-examples/tree/main/whisper) 和 [Whisper 模型文档](https://developers.openai.com/api/docs/models/whisper-1)。
 
 ## 4. 架构与包职责
 
@@ -56,7 +57,7 @@ API / CLI
    ▼
 SubtitlePipeline
    ├── AudioExtractor      → media/ffmpeg.py
-   ├── Transcriber         → transcription/openai_whisper.py
+   ├── Transcriber         → transcription/mlx_whisper.py | openai_whisper.py
    ├── Translator          → translation/openai_translator.py
    └── SubtitleWriter      → subtitles/srt.py
 ```
@@ -68,10 +69,10 @@ SubtitlePipeline
 - `media`：负责把输入视频变成带偏移量的音频分片；
 - `transcription`：把音频分片转换为英文字幕段；
 - `translation`：保持分段 ID 不变，将英文转换为简体中文；
-- `subtitles`：把领域对象渲染为字幕文件；
+- `subtitles`：把领域对象渲染为 SRT 和用于视频压制的 ASS 字幕文件；
 - `jobs`：管理上传任务的状态、目录和后台执行；
 - `api`：处理上传、查询和下载，不承载字幕业务规则；
-- `bootstrap.py`：创建 OpenAI client 并把具体适配器装配成管线；
+- `bootstrap.py`：按配置选择本地或 API 转写器，创建翻译 client 并装配管线；
 - `config.py`：集中管理环境变量，业务包不直接读取环境。
 
 依赖方向必须保持为“入口/基础设施依赖领域和管线”，禁止 `domain` 反向导入 `api`、`jobs` 或 OpenAI SDK。
@@ -82,12 +83,13 @@ SubtitlePipeline
 2. 为任务创建隔离工作目录；
 3. FFmpeg 提取 16 kHz、单声道、64 kbps MP3，并按 15 分钟切片；
 4. 使用 ffprobe 获取每个切片的实际时长，累计全局时间偏移；
-5. 逐片调用 `whisper-1`，请求 `verbose_json` 和 segment 时间戳；
+5. 默认逐片调用本地 MLX `whisper-turbo` 获得 segment 时间戳，也可配置为 `whisper-1`；
 6. 将局部时间戳转换为整部视频的全局时间戳，并重新分配连续 ID；
 7. 按固定批次翻译，相邻字幕共同提供上下文；
 8. 校验翻译结果与输入 ID 完全一致；
-9. 英文在上、中文在下，共用同一时间区间写入 SRT；
-10. 保存任务结果并提供下载地址。
+9. 英文在上、中文在下，共用同一时间区间写入可下载的 SRT；
+10. 生成中文在上、英文在下的 ASS 字幕，并通过 FFmpeg 压制到视频底部；
+11. 保存 SRT 与 MP4 成片并分别提供下载地址。
 
 ## 6. 任务目录
 
@@ -96,7 +98,9 @@ var/jobs/<uuid>/
 ├── job.json
 ├── input.mp4
 ├── subtitles.bilingual.srt
+├── video.bilingual.mp4
 └── work/
+    ├── subtitles.bilingual.ass
     └── audio/
         ├── part_000.mp3
         └── part_001.mp3
@@ -117,17 +121,18 @@ var/jobs/<uuid>/
 ### 阶段 B：核心流水线
 
 - 实现 FFmpeg 音频切片；
-- 实现 `whisper-1` 适配器；
+- 实现 MLX `whisper-turbo` 和 `whisper-1` 适配器及配置切换；
 - 实现带结构化输出的翻译适配器；
 - 实现双语 SRT writer；
+- 实现双语 ASS writer 与 FFmpeg 视频字幕压制；
 - 实现统一 `SubtitlePipeline`。
 
-验收：使用假适配器时可以从“视频”走到 SRT；使用真实 API 时可以处理一个短英文样本。
+验收：使用假适配器时可以从“视频”走到 SRT；本地 MLX 模型可以处理一个短英文样本。
 
 ### 阶段 C：产品入口
 
 - 实现 Typer CLI；
-- 实现 FastAPI 上传、状态查询和下载接口；
+- 实现 FastAPI 上传、状态查询、SRT 下载和字幕成片下载接口；
 - 实现文件型任务存储和后台 runner。
 
 验收：CLI 和 API 调用相同管线；上传接口立即返回任务 ID；失败时状态为 `failed` 并提供错误原因。
@@ -146,11 +151,13 @@ var/jobs/<uuid>/
 - [ ] 全新环境按照 README 可以完成安装；
 - [ ] 未配置 API Key 时给出明确错误，不泄露敏感信息；
 - [ ] 缺少 FFmpeg 时给出安装提示；
+- [ ] 首次下载后可从本机缓存加载 `whisper-turbo`；
 - [ ] CLI 可以为短视频生成双语 SRT；
-- [ ] HTTP 接口支持上传、查询和下载；
+- [ ] HTTP 接口支持上传、查询、SRT 下载和字幕成片下载；
 - [ ] 长音频被切片，跨切片时间戳保持单调递增；
 - [ ] 每个英文段都有且只有一个中文段；
 - [ ] SRT 序号连续，时间戳符合 `HH:MM:SS,mmm`；
+- [ ] MP4 成片可播放，字幕位于底部且中文在上、英文在下；
 - [ ] API Key 和运行数据不进入版本库；
 - [ ] 默认单元测试不产生 OpenAI 费用。
 
@@ -168,9 +175,9 @@ Whisper 的 segment 主要服务转录，不保证每行符合字幕阅读长度
 
 FastAPI `BackgroundTasks` 不具备可靠队列语义。V1 保存状态以便排查，但不自动恢复。生产化时迁移到 Redis + worker 或云任务队列。
 
-### API 成本和限流
+### 本地资源与 API 成本
 
-切片逐个转录、翻译分批调用；OpenAI SDK 开启有限重试。后续记录每个任务的音频时长和 token usage，并增加用户配额。
+本地转写按 15 分钟切片并串行使用 MLX，避免多个后台任务同时占满统一内存；翻译仍分批调用 OpenAI，SDK 开启有限重试。后续记录每个任务的音频时长和 token usage，并增加用户配额。
 
 ### 上传安全与磁盘增长
 
@@ -183,7 +190,6 @@ V1 使用 UUID 隔离目录和安全扩展名，但尚无大小配额及自动�
 1. 字幕重切分和阅读速度控制；
 2. Web 校对界面和时间轴预览；
 3. 可持久化队列、数据库与任务恢复；
-4. 本地 `mlx-whisper` 与 API 模式切换；
-5. 专有名词表、角色名和跨集翻译记忆；
-6. 说话人分离、WebVTT/ASS 输出和字幕烧录；
-7. 对象存储、账号配额和生产部署。
+4. 剧集术语表、人物名提示和跨集翻译记忆；
+5. 说话人分离、WebVTT 输出和字幕样式模板；
+6. 对象存储、账号配额和生产部署。

@@ -22,6 +22,7 @@ const elements = {
   generateStep: document.querySelector("#process-generate"),
   exportStep: document.querySelector("#process-export"),
   downloadButton: document.querySelector("#download-button"),
+  subtitleDownloadButton: document.querySelector("#subtitle-download-button"),
   newTaskButton: document.querySelector("#new-task-button"),
   retryButton: document.querySelector("#retry-button"),
 };
@@ -104,6 +105,7 @@ function showProgressView() {
   elements.stepLabel.textContent = "第 2 步 / 共 3 步";
   elements.processingVisual.className = "processing-visual";
   elements.downloadButton.hidden = true;
+  elements.subtitleDownloadButton.hidden = true;
   elements.newTaskButton.hidden = true;
   elements.retryButton.hidden = true;
 }
@@ -147,8 +149,8 @@ function showProcessing(filename) {
   setSteps(1);
   elements.stepLabel.textContent = "第 2 步 / 共 3 步";
   elements.statusKicker.textContent = "PROCESSING";
-  elements.statusTitle.textContent = "正在识别并翻译对白…";
-  elements.statusDetail.textContent = `${filename} 已上传。长视频需要一些时间，你可以保留此页面等待结果。`;
+  elements.statusTitle.textContent = "正在生成双语字幕并压制成片…";
+  elements.statusDetail.textContent = `${filename} 已上传。转录、翻译和视频编码需要一些时间，请保留此页面。`;
   estimatedProgress = 36;
   setProgress(estimatedProgress, "语音识别与翻译", true);
   window.clearInterval(progressTimer);
@@ -185,12 +187,14 @@ function showSuccess(job) {
   elements.processingVisual.classList.add("is-success");
   elements.stepLabel.textContent = "已完成";
   elements.statusKicker.textContent = "READY TO DOWNLOAD";
-  elements.statusTitle.textContent = "双语字幕已经准备好了";
+  elements.statusTitle.textContent = "双语字幕成片已经准备好了";
   const segmentText = job.segment_count ? `共生成 ${job.segment_count} 条字幕。` : "字幕已生成。";
-  elements.statusDetail.textContent = `${segmentText} 下载后即可载入播放器。`;
-  setProgress(100, "字幕生成完成");
-  elements.downloadButton.href = job.download_url;
+  elements.statusDetail.textContent = `${segmentText} 中文在上、英文在下，已经压制到画面底部。`;
+  setProgress(100, "字幕成片生成完成");
+  elements.downloadButton.href = job.video_download_url;
   elements.downloadButton.hidden = false;
+  elements.subtitleDownloadButton.href = job.download_url;
+  elements.subtitleDownloadButton.hidden = false;
   elements.newTaskButton.hidden = false;
 }
 

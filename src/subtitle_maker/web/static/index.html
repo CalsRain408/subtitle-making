@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#f5f2ec">
-    <meta name="description" content="上传英文视频，自动生成带时间轴的中英双语 SRT 字幕。">
+    <meta name="description" content="上传英文视频，自动生成并压制中英双语字幕成片。">
     <title>Subtitle Maker · 中英双语字幕生成器</title>
     <link rel="stylesheet" href="/static/styles.css">
     <script src="/static/app.js" defer></script>
@@ -28,12 +28,12 @@
             <div class="eyebrow"><span>AI POWERED</span><span class="eyebrow-line"></span></div>
             <h1 id="hero-title">让每一句对白，<br><em>跨过语言边界。</em></h1>
             <p class="hero-description">
-              上传英文视频，自动完成语音识别、时间轴对齐与中文翻译，生成播放器可直接加载的中英双语字幕。
+              上传英文视频，自动完成语音识别、时间轴对齐与中文翻译，再将双语字幕压制到画面底部。
             </p>
             <ul class="feature-list" aria-label="产品特点">
               <li><span>01</span>保留原声时间轴</li>
               <li><span>02</span>中英双行对照</li>
-              <li><span>03</span>标准 SRT 输出</li>
+              <li><span>03</span>MP4 字幕成片</li>
             </ul>
           </div>
 
@@ -70,7 +70,7 @@
               </div>
 
               <button class="primary-button" id="start-button" type="button" disabled>
-                <span>开始生成双语字幕</span><span aria-hidden="true">↗</span>
+                <span>开始生成字幕成片</span><span aria-hidden="true">↗</span>
               </button>
               <p class="form-error" id="form-error" role="alert" hidden></p>
             </div>
@@ -95,12 +95,13 @@
               <ol class="process-steps">
                 <li id="process-upload"><span>1</span><div><strong>上传视频</strong><small>保存到任务空间</small></div></li>
                 <li id="process-generate"><span>2</span><div><strong>识别与翻译</strong><small>提取对白并生成中文</small></div></li>
-                <li id="process-export"><span>3</span><div><strong>生成字幕</strong><small>输出双语 SRT 文件</small></div></li>
+                <li id="process-export"><span>3</span><div><strong>压制成片</strong><small>字幕写入视频画面</small></div></li>
               </ol>
 
               <a class="primary-button download-button" id="download-button" href="#" hidden>
-                <span>下载双语字幕</span><span aria-hidden="true">↓</span>
+                <span>下载字幕成片</span><span aria-hidden="true">↓</span>
               </a>
+              <a class="secondary-button" id="subtitle-download-button" href="#" hidden>另存双语 SRT 字幕</a>
               <button class="secondary-button" id="new-task-button" type="button" hidden>创建新任务</button>
               <button class="secondary-button" id="retry-button" type="button" hidden>重新选择视频</button>
             </div>
@@ -110,12 +111,12 @@
         <section class="how-it-works" aria-labelledby="flow-title">
           <div class="section-heading">
             <p>HOW IT WORKS</p>
-            <h2 id="flow-title">从视频到双语字幕，三步完成</h2>
+            <h2 id="flow-title">从原始视频到字幕成片，三步完成</h2>
           </div>
           <div class="flow-grid">
             <article><span>01</span><div class="flow-icon sound-icon" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><h3>提取原声</h3><p>自动分离视频音轨并切分长音频，保留精确的全局时间位置。</p></article>
             <article><span>02</span><div class="flow-icon language-icon" aria-hidden="true">A <i>译</i></div><h3>识别与翻译</h3><p>识别英文对白，结合相邻语境生成自然、连贯的简体中文翻译。</p></article>
-            <article><span>03</span><div class="flow-icon subtitle-icon" aria-hidden="true"><i></i><i></i></div><h3>下载 SRT</h3><p>英文在上、中文在下，标准 UTF-8 字幕可直接载入主流播放器。</p></article>
+            <article><span>03</span><div class="flow-icon subtitle-icon" aria-hidden="true"><i></i><i></i></div><h3>压制并下载</h3><p>中文在上、英文在下，字幕固定在画面底部，输出通用 MP4 成片。</p></article>
           </div>
         </section>
       </main>

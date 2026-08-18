@@ -4,10 +4,7 @@ from typing import Any
 from openai import OpenAI
 
 from subtitle_maker.domain.models import AudioChunk, SubtitleSegment
-
-
-class TranscriptionError(RuntimeError):
-    pass
+from subtitle_maker.transcription import TranscriptionError
 
 
 class OpenAIWhisperTranscriber:
