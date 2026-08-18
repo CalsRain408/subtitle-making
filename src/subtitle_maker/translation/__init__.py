@@ -1,0 +1,2 @@
+"""Subtitle translation adapters."""
+
