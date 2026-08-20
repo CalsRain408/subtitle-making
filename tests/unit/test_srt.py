@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from subtitle_maker.domain.models import SubtitleSegment
-from subtitle_maker.subtitles.srt import SrtWriter
+from subtitle_maker.subtitles.srt import SrtReader, SrtWriter
 
 
 class SrtWriterTest(TestCase):
@@ -41,3 +41,19 @@ class SrtWriterTest(TestCase):
 
         self.assertIn("00:00:00,000 --> 00:00:00,100", result)
         self.assertIn("Hello there\n你好 啊", result)
+
+
+class SrtReaderTest(TestCase):
+    def test_parse_english_srt(self) -> None:
+        result = SrtReader().parse(
+            "1\r\n"
+            "00:00:01,250 --> 00:00:03,500\r\n"
+            "Where are you\r\n"
+            "going?\r\n"
+        )
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].id, 1)
+        self.assertEqual(result[0].start_seconds, 1.25)
+        self.assertEqual(result[0].end_seconds, 3.5)
+        self.assertEqual(result[0].source_text, "Where are you going?")

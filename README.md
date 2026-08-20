@@ -2,7 +2,7 @@
 
 Subtitle Maker 是一个 Python 项目，用于将英文视频转换为带中英双语字幕的 MP4 成片，并同时保留可独立下载的 SRT 字幕。
 
-V1 使用 FFmpeg 提取并按 15 分钟切分音频，在 Apple Silicon 上调用本地 `whisper-turbo` 生成带时间戳的英文分段，再调用文本模型逐批翻译为简体中文，最后输出 SRT，并将中文在上、英文在下的字幕压制到视频底部。
+V1 使用 FFmpeg 提取并按 15 分钟切分音频，在 Apple Silicon 上调用本地 `whisper-turbo` 生成带时间戳的英文分段，再调用 DeepSeek 文本模型逐批翻译为简体中文，最后输出 SRT，并将中文在上、英文在下的字幕压制到视频底部。
 
 > 当前版本面向单机开发和个人使用。任务状态存储在本地文件中，不依赖数据库或消息队列。
 
@@ -36,6 +36,8 @@ uvicorn subtitle_maker.api.app:app --reload
 
 ```text
 subtitle-making/
+├── knowledge/
+│   └── modern-family/              # 经人工审核、带来源的离线剧集知识库
 ├── docs/
 │   └── V1_EXECUTION_PLAN.md       # V1 范围、里程碑和验收标准
 ├── src/
@@ -72,7 +74,7 @@ subtitle-making/
 - Apple Silicon Mac（本地 MLX 转写）或 Linux（使用 OpenAI 转写后端）；
 - Python 3.11 及以上版本；
 - FFmpeg（同时提供 `ffmpeg` 和 `ffprobe`）；
-- OpenAI API Key（用于英译中；本地语音识别本身不消耗 API 额度）。
+- DeepSeek API Key（用于英译中；本地语音识别本身不消耗 API 额度）。
 
 视频压制需要 FFmpeg 的 `libass/subtitles` 过滤器。在 macOS 安装完整版本：
 
@@ -95,7 +97,7 @@ cp .env.example .env
 编辑 `.env`，填写 API Key：
 
 ```dotenv
-OPENAI_API_KEY=your_api_key_here
+DEEPSEEK_API_KEY=your_api_key_here
 ```
 
 不要将 `.env` 或 API Key 提交到版本库。
@@ -119,6 +121,14 @@ subtitle-maker create /path/to/episode.mp4 --output /path/to/episode.srt
 ```bash
 python -m subtitle_maker create /path/to/episode.mp4
 ```
+
+已经生成英文 SRT 时，可以跳过音频提取和 Whisper 转写，直接调用 DeepSeek 生成双语字幕：
+
+```bash
+subtitle-maker translate /path/to/episode.srt
+```
+
+默认生成 `/path/to/episode.bilingual.srt`，也可以使用 `--output` 指定输出路径。
 
 ## HTTP API 使用
 
@@ -159,12 +169,17 @@ curl -OJ http://127.0.0.1:8000/v1/jobs/<job-id>/video
 
 | 环境变量 | 默认值 | 说明 |
 |---|---:|---|
-| `OPENAI_API_KEY` | 无 | 必填；用于字幕英译中 |
+| `DEEPSEEK_API_KEY` | 无 | 必填；用于字幕英译中 |
+| `DEEPSEEK_BASE_URL` | `https://api.deepseek.com` | DeepSeek 的 OpenAI 兼容 API 地址 |
+| `DEEPSEEK_TRANSLATION_MODEL` | `deepseek-v4-pro` | 英译中模型 |
+| `DEEPSEEK_REASONING_EFFORT` | `high` | 思考强度，可设为 `high` 或 `max` |
+| `DEEPSEEK_THINKING` | `enabled` | 是否启用思考模式，可设为 `enabled` 或 `disabled` |
+| `DEEPSEEK_MAX_OUTPUT_TOKENS` | `8192` | 单批翻译的最大输出 token 数 |
+| `OPENAI_API_KEY` | 无 | 仅当转写后端设为 `openai` 时需要 |
 | `SUBTITLE_TRANSCRIPTION_BACKEND` | `mlx` | 转写后端；Apple Silicon 使用 `mlx`，也可设为 `openai` |
 | `LOCAL_WHISPER_MODEL` | `mlx-community/whisper-turbo` | 本地 MLX Whisper 模型 |
 | `SUBTITLE_TRANSCRIPTION_LANGUAGE` | `en` | 原始音轨语言；当前项目默认处理英语电视剧 |
 | `OPENAI_TRANSCRIPTION_MODEL` | `whisper-1` | ASR 模型 |
-| `OPENAI_TRANSLATION_MODEL` | `gpt-5.4-mini` | 英译中模型，可按账号权限替换 |
 | `SUBTITLE_DATA_DIR` | `var` | 上传文件、任务状态和结果目录 |
 | `SUBTITLE_AUDIO_CHUNK_SECONDS` | `900` | 音频分片秒数 |
 | `SUBTITLE_TRANSLATION_BATCH_SIZE` | `30` | 每批翻译的字幕段数 |
@@ -183,7 +198,7 @@ ruff check .
 mypy src
 ```
 
-单元测试不会访问 OpenAI，也不需要真实视频。端到端测试需要 FFmpeg、API Key 和测试媒体文件，因此不包含在默认测试命令中。
+单元测试不会访问外部模型 API，也不需要真实视频。端到端测试需要 FFmpeg、API Key 和测试媒体文件，因此不包含在默认测试命令中。
 
 ## V1 限制
 
